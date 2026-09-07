@@ -2,6 +2,36 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { createInput } from "../src/input.js";
 
+test("S is handled on focused buttons, but not in editors or browser shortcuts", () => {
+  const target = new EventTarget();
+  target.tagName = "BUTTON";
+  const input = createInput(target);
+  function press(extra = {}) {
+    const event = new Event("keydown", { cancelable: true });
+    for (const [key, value] of Object.entries({ code: "KeyS", ...extra }))
+      Object.defineProperty(event, key, { value });
+    target.dispatchEvent(event);
+    return event;
+  }
+  assert.equal(press().defaultPrevented, true);
+  assert.equal(input.snapshot().brake, true);
+  input.clear();
+  for (const tag of ["INPUT", "TEXTAREA", "SELECT"]) {
+    target.tagName = tag;
+    assert.equal(press().defaultPrevented, false);
+    assert.equal(input.snapshot().brake, false);
+  }
+  target.tagName = "BUTTON";
+  for (const modifier of ["ctrlKey", "metaKey", "altKey"]) {
+    assert.equal(press({ [modifier]: true }).defaultPrevented, false);
+    assert.equal(input.snapshot().brake, false);
+  }
+  target.isContentEditable = true;
+  assert.equal(press().defaultPrevented, false);
+  assert.equal(input.snapshot().brake, false);
+  input.destroy();
+});
+
 test("brake reduces speed and overrides thrust without mutation", () => {
   const ship = Object.freeze({ ...createShip(), vx: 100 });
   const normal = integrate(ship, {}, 1 / 60);
