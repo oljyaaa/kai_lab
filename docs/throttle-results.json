@@ -1,0 +1,38 @@
+{
+  "browser": "152.0.7977.77",
+  "methodology": "Headless Chrome, CDP CPU throttling 1x/6x, rAF, exactly 5 simulated seconds, scripted constant thrust, no arena wrapping or delta clamp in measurement harness.",
+  "results": [
+    {
+      "mode": "fixed",
+      "rate": 1,
+      "frames": 271,
+      "steps": 300,
+      "x": 500,
+      "y": -765.3209449424874
+    },
+    {
+      "mode": "fixed",
+      "rate": 6,
+      "frames": 302,
+      "steps": 300,
+      "x": 500,
+      "y": -765.3209449424874
+    },
+    {
+      "mode": "variable",
+      "rate": 1,
+      "frames": 302,
+      "steps": 301,
+      "x": 500,
+      "y": -765.3209264741353
+    },
+    {
+      "mode": "variable",
+      "rate": 6,
+      "frames": 302,
+      "steps": 301,
+      "x": 500,
+      "y": -765.320993055883
+    }
+  ]
+}

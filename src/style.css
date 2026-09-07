@@ -1,0 +1,270 @@
+@import url("https://fonts.googleapis.com/css2?family=Comfortaa:wght@500;700&family=Nunito:wght@400;600;700;800;900&display=swap");
+:root {
+  font-family: Nunito, sans-serif;
+  color: #633c58;
+  background: #fff7fb;
+  font-synthesis: none;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: radial-gradient(#efd6e7 1px, transparent 1px) 0 0 / 18px 18px;
+}
+button,
+select {
+  font: inherit;
+}
+button {
+  cursor: pointer;
+}
+header {
+  padding: 24px 5%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #efd5e4;
+  background: #fffafd;
+}
+h1 {
+  font:
+    700 26px Comfortaa,
+    sans-serif;
+  margin: 0;
+  color: #d23b80;
+}
+header small {
+  display: block;
+  margin-top: 7px;
+  font-size: 13px;
+  letter-spacing: 2px;
+}
+.pill {
+  border: 1px solid #efd0e1;
+  background: #fff;
+  border-radius: 30px;
+  padding: 8px 15px;
+  font-size: 13px;
+  color: #a74979;
+}
+main {
+  max-width: 1400px;
+  margin: auto;
+  padding: 32px 5%;
+}
+.intro {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  margin-bottom: 23px;
+}
+h2 {
+  font-size: 30px;
+  margin: 0 0 5px;
+  font-weight: 900;
+}
+p {
+  margin: 0;
+  color: #966b87;
+}
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 270px;
+  gap: 24px;
+}
+.stage {
+  background: white;
+  padding: 10px;
+  border: 1px solid #edc9dc;
+  border-radius: 25px;
+  box-shadow: 0 10px 40px #b5538620;
+  overflow: hidden;
+}
+.stage-top {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 14px 17px;
+  font-size: 12px;
+  letter-spacing: 2px;
+  font-weight: 800;
+}
+canvas {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1000 / 660;
+  border-radius: 17px;
+  touch-action: none;
+}
+.stage-bottom {
+  display: flex;
+  justify-content: space-between;
+  padding: 15px 12px 7px;
+  font-size: 13px;
+}
+aside {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.card {
+  border: 1px solid #edd3e2;
+  border-radius: 22px;
+  background: #fffcfe;
+  padding: 21px;
+}
+.card h3 {
+  margin: 0 0 15px;
+  font-size: 17px;
+}
+.badge {
+  background: #ffe1ee;
+  color: #c23f7a;
+  padding: 7px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+}
+.metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-top: 18px;
+}
+.metrics b {
+  font-size: 25px;
+  display: block;
+  color: #c94a87;
+}
+.metrics span {
+  font-size: 12px;
+}
+kbd {
+  display: inline-block;
+  min-width: 31px;
+  border: 1px solid #e4bfd6;
+  border-bottom-width: 3px;
+  border-radius: 8px;
+  padding: 5px;
+  background: white;
+  text-align: center;
+}
+.controls p {
+  font-size: 14px;
+  margin: 10px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+button {
+  border: 0;
+  border-radius: 13px;
+  padding: 12px 16px;
+  background: #ed5196;
+  color: white;
+  font-weight: 800;
+}
+button:hover {
+  filter: brightness(0.96);
+}
+button:focus-visible,
+select:focus-visible {
+  outline: 3px solid #794caf;
+  outline-offset: 3px;
+}
+.secondary {
+  background: #f5e6ef;
+  color: #81536f;
+}
+.actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+.actions button {
+  flex: 1;
+}
+.lab {
+  margin-top: 24px;
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.lab label {
+  font-weight: 800;
+}
+select {
+  padding: 11px;
+  border: 1px solid #dfbdd2;
+  border-radius: 10px;
+  background: white;
+  color: #633c58;
+}
+.hint {
+  font-size: 13px;
+  margin-top: 12px;
+  line-height: 1.6;
+}
+footer {
+  font-size: 12px;
+  text-align: center;
+  margin: 30px;
+  color: #ab829b;
+}
+.touch {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin: 12px;
+}
+.touch button {
+  background: #f9d4e7;
+  color: #96406d;
+  min-width: 55px;
+}
+#status {
+  font-size: 13px;
+  margin-top: 12px;
+}
+@media (max-width: 850px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+  aside {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .intro {
+    display: block;
+  }
+  .intro .pill {
+    display: none;
+  }
+  header {
+    padding: 18px 5%;
+  }
+  h2 {
+    font-size: 25px;
+  }
+  main {
+    padding-top: 22px;
+  }
+}
+@media (max-width: 520px) {
+  aside {
+    grid-template-columns: 1fr;
+  }
+  header .pill {
+    display: none;
+  }
+  .stage-top {
+    font-size: 10px;
+  }
+  .stage-bottom {
+    font-size: 11px;
+  }
+  .lab {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

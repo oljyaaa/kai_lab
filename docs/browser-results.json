@@ -1,0 +1,30 @@
+{
+  "browser": "152.0.7977.77",
+  "errors": [],
+  "reports": [
+    {
+      "mode": "fixed",
+      "summary": "Готово: середній кадр 16.67 ms; максимум 16.80 ms; jitter σ 0.06 ms."
+    },
+    {
+      "mode": "block",
+      "summary": "Готово: середній кадр 18.01 ms; максимум 100.10 ms; jitter σ 10.52 ms."
+    },
+    {
+      "mode": "interval",
+      "summary": "Готово: середній кадр 16.00 ms; максимум 22.30 ms; jitter σ 0.68 ms."
+    },
+    {
+      "mode": "variable",
+      "summary": "Готово: середній кадр 16.67 ms; максимум 16.80 ms; jitter σ 0.06 ms."
+    }
+  ],
+  "checks": [
+    "keyboard thrust",
+    "pause/resume",
+    "reset",
+    "four measurement modes and JSON downloads",
+    "mobile no horizontal overflow",
+    "DPR 2 screenshots"
+  ]
+}
