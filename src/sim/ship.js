@@ -9,13 +9,12 @@ export function createShip() {
 }
 export function integrate(ship, input, dt) {
   const angle = ship.angle + (input.turn || 0) * PHYSICS.turn * dt;
-  const acceleration = input.thrust ? PHYSICS.acceleration : 0;
+  const acceleration = input.thrust && !input.brake ? PHYSICS.acceleration : 0;
+  const drag = PHYSICS.drag + (input.brake ? 5 : 0);
   let vx =
-    (ship.vx + Math.cos(angle) * acceleration * dt) *
-    Math.exp(-PHYSICS.drag * dt);
+    (ship.vx + Math.cos(angle) * acceleration * dt) * Math.exp(-drag * dt);
   let vy =
-    (ship.vy + Math.sin(angle) * acceleration * dt) *
-    Math.exp(-PHYSICS.drag * dt);
+    (ship.vy + Math.sin(angle) * acceleration * dt) * Math.exp(-drag * dt);
   const speed = Math.hypot(vx, vy);
   if (speed > PHYSICS.maxSpeed) {
     vx *= PHYSICS.maxSpeed / speed;
@@ -28,6 +27,6 @@ export function integrate(ship, input, dt) {
     vx,
     vy,
     angle,
-    thrust: Boolean(input.thrust),
+    thrust: Boolean(input.thrust && !input.brake),
   };
 }

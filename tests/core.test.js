@@ -1,6 +1,37 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createInput } from "../src/input.js";
+
+test("brake reduces speed and overrides thrust without mutation", () => {
+  const ship = Object.freeze({ ...createShip(), vx: 100 });
+  const normal = integrate(ship, {}, 1 / 60);
+  const braking = integrate(ship, { brake: true, thrust: true }, 1 / 60);
+  assert.ok(braking.vx < normal.vx);
+  assert.equal(braking.thrust, false);
+  assert.equal(ship.vx, 100);
+});
+test("switching schemes clears keys and disables inactive controls", () => {
+  const target = new EventTarget();
+  const input = createInput(target);
+  const press = (code) => {
+    const e = new Event("keydown");
+    Object.defineProperty(e, "code", { value: code });
+    target.dispatchEvent(e);
+  };
+  press("KeyW");
+  assert.equal(input.snapshot().thrust, true);
+  input.setScheme("arrows");
+  assert.equal(input.snapshot().thrust, false);
+  press("KeyW");
+  assert.equal(input.snapshot().thrust, false);
+  press("ArrowDown");
+  assert.equal(input.snapshot().brake, true);
+  input.setScheme("touch");
+  press("ArrowUp");
+  assert.equal(input.snapshot().thrust, false);
+  input.destroy();
+});
+
 import { createLoop } from "../src/loop.js";
 import { interpolate, wrapShip } from "../src/sim/arena.js";
 import { createShip, integrate } from "../src/sim/ship.js";

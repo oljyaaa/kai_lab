@@ -82,10 +82,11 @@ export function drawShip(ctx, ship, time) {
   }
   ctx.restore();
 }
-export function draw(ctx, ship, stats, time) {
-  ctx.fillStyle = "#fff3f9";
+export function draw(ctx, ship, stats, time, theme = "light") {
+  const dark = theme === "dark";
+  ctx.fillStyle = dark ? "#291c32" : "#fff3f9";
   ctx.fillRect(0, 0, ARENA.width, ARENA.height);
-  ctx.strokeStyle = "#f3dce9";
+  ctx.strokeStyle = dark ? "#44304b" : "#f3dce9";
   ctx.lineWidth = 1;
   for (let x = 0; x <= 1000; x += 50) {
     ctx.beginPath();
@@ -110,7 +111,7 @@ export function draw(ctx, ship, stats, time) {
   ctx.ellipse(500, 330, 310, 215, -0.12, 0, Math.PI * 2);
   ctx.stroke();
   ctx.setLineDash([]);
-  ctx.fillStyle = "#f6dceca0";
+  ctx.fillStyle = dark ? "#5d355770" : "#f6dceca0";
   ctx.beginPath();
   ctx.arc(500, 330, 85, 0, 7);
   ctx.fill();
@@ -122,7 +123,7 @@ export function draw(ctx, ship, stats, time) {
     for (const dy of [-660, 0, 660])
       drawShip(ctx, { ...ship, x: ship.x + dx, y: ship.y + dy }, time);
   ctx.textAlign = "left";
-  ctx.fillStyle = "#69415f";
+  ctx.fillStyle = dark ? "#f9d7ec" : "#69415f";
   ctx.font = "15px monospace";
   ctx.fillText(
     `${stats.stepsPerSecond.toFixed(0)} steps/s   ${stats.framesPerSecond.toFixed(0)} frames/s   ${stats.frameMs.toFixed(1)} ms`,

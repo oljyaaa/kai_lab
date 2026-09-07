@@ -22,11 +22,96 @@ let current = createShip(),
   frameCount = 0;
 const touch = new Set();
 const $ = (id) => document.getElementById(id);
+const preferences = {
+  read(key, fallback) {
+    try {
+      return localStorage.getItem(key) || fallback;
+    } catch {
+      return fallback;
+    }
+  },
+  write(key, value) {
+    try {
+      localStorage.setItem(key, value);
+    } catch {
+      /* Settings still work without storage. */
+    }
+  },
+};
+let theme =
+  preferences.read("glitter-theme", "light") === "dark" ? "dark" : "light";
+let scheme = preferences.read("glitter-controls", "wasd");
+if (!["wasd", "arrows", "touch"].includes(scheme)) scheme = "wasd";
+document
+  .querySelector("header")
+  .insertAdjacentHTML(
+    "beforeend",
+    '<button id="theme" class="secondary" aria-pressed="false">☾ Нічна тема</button>',
+  );
+document.querySelector(".controls").innerHTML =
+  `<h3>Пульт керування</h3><label for="controls">Спосіб керування</label><select id="controls"><option value="wasd">Клавіатура · WASD</option><option value="arrows">Клавіатура · стрілки</option><option value="touch">Екранні кнопки</option></select><div id="key-guide"></div><div class="actions"><button id="pause">Пауза</button><button id="reset" class="secondary">На старт</button></div><p class="hint">Клікни арену для польоту. Tab переміщує фокус між налаштуваннями.</p>`;
+document
+  .querySelector(".touch")
+  .insertAdjacentHTML(
+    "beforeend",
+    '<button data-control="brake" aria-label="Гальмувати">↓ Гальмо</button>',
+  );
+const canvas = document.querySelector("canvas");
+canvas.tabIndex = 0;
+function paint() {
+  surface.prepare();
+  draw(
+    surface.ctx,
+    current,
+    loop?.stats || { stepsPerSecond: 0, framesPerSecond: 0, frameMs: 0 },
+    performance.now() / 1000,
+    theme,
+  );
+  $("speed").textContent = Math.hypot(current.vx, current.vy).toFixed(0);
+}
+function applyTheme() {
+  document.documentElement.dataset.theme = theme;
+  $("theme").textContent = theme === "dark" ? "☀ Денна тема" : "☾ Нічна тема";
+  $("theme").setAttribute("aria-pressed", String(theme === "dark"));
+  paint();
+}
+function applyScheme() {
+  input.setScheme(scheme);
+  touch.clear();
+  $("controls").value = scheme;
+  document.querySelector(".touch").hidden = scheme !== "touch";
+  $("key-guide").innerHTML =
+    scheme === "touch"
+      ? "<p>Утримуй кнопки під ареною.</p>"
+      : `<p><span>Тяга</span><kbd>${scheme === "wasd" ? "W" : "↑"}</kbd></p><p><span>Гальмування</span><kbd>${scheme === "wasd" ? "S" : "↓"}</kbd></p><p><span>Поворот</span><kbd>${scheme === "wasd" ? "A / D" : "← / →"}</kbd></p><p><span>На старт</span><kbd>R</kbd></p>`;
+  canvas.setAttribute(
+    "aria-label",
+    `Арена FPV. ${scheme === "wasd" ? "W — тяга, S — гальмо, A D — поворот." : scheme === "arrows" ? "Стрілка вгору — тяга, вниз — гальмо, вліво та вправо — поворот." : "Керування кнопками під ареною."}`,
+  );
+}
+$("theme").onclick = () => {
+  theme = theme === "dark" ? "light" : "dark";
+  preferences.write("glitter-theme", theme);
+  applyTheme();
+};
+$("controls").onchange = (event) => {
+  cancelMeasurement();
+  scheme = event.target.value;
+  preferences.write("glitter-controls", scheme);
+  applyScheme();
+  canvas.focus({ preventScroll: true });
+};
+applyScheme();
+applyTheme();
+surface.setOnResize(() => {
+  if (paused) paint();
+});
 function reset() {
   current = createShip();
   previous = current;
   input.clear();
   touch.clear();
+  paint();
 }
 function cancelMeasurement() {
   if (measuring) {
@@ -44,6 +129,7 @@ function startLoop() {
       previous = current;
       const keys = input.snapshot();
       keys.thrust ||= touch.has("thrust");
+      keys.brake ||= touch.has("brake");
       keys.turn += Number(touch.has("right")) - Number(touch.has("left"));
       current = wrapShip(integrate(current, keys, dt));
       input.endStep();
@@ -62,6 +148,7 @@ function startLoop() {
         interpolate(previous, current, alpha),
         stats,
         performance.now() / 1000,
+        theme,
       );
       $("speed").textContent = Math.hypot(current.vx, current.vy).toFixed(0);
       $("steps").textContent = stats.stepsPerSecond.toFixed(0);
@@ -99,6 +186,8 @@ function startLoop() {
 $("pause").onclick = () => {
   cancelMeasurement();
   paused = !paused;
+  input.clear();
+  touch.clear();
   if (paused) loop.stop();
   else loop.start();
   $("pause").textContent = paused ? "Продовжити" : "Пауза";
@@ -108,7 +197,7 @@ $("reset").onclick = () => {
   reset();
   if (paused) {
     surface.prepare();
-    draw(surface.ctx, current, loop.stats, performance.now() / 1000);
+    draw(surface.ctx, current, loop.stats, performance.now() / 1000, theme);
   }
 };
 $("mode").onchange = (event) => {
@@ -142,11 +231,14 @@ $("download").onclick = () => {
 };
 for (const button of document.querySelectorAll("[data-control]")) {
   button.onpointerdown = (event) => {
+    event.preventDefault();
     button.setPointerCapture(event.pointerId);
     touch.add(button.dataset.control);
   };
-  button.onpointerup = button.onpointercancel = () =>
-    touch.delete(button.dataset.control);
+  button.onpointerup =
+    button.onpointercancel =
+    button.onlostpointercapture =
+      () => touch.delete(button.dataset.control);
 }
 window.addEventListener("blur", () => touch.clear());
 startLoop();

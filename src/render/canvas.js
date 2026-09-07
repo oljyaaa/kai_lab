@@ -1,17 +1,29 @@
 import { ARENA } from "../sim/arena.js";
 export function createCanvas(canvas) {
   const ctx = canvas.getContext("2d");
+  let onResize = () => {};
   function resize() {
     const { width, height } = canvas.getBoundingClientRect();
     const dpr = window.devicePixelRatio || 1;
-    canvas.width = Math.round(width * dpr);
-    canvas.height = Math.round(height * dpr);
+    if (
+      canvas.width !== Math.round(width * dpr) ||
+      canvas.height !== Math.round(height * dpr)
+    ) {
+      canvas.width = Math.round(width * dpr);
+      canvas.height = Math.round(height * dpr);
+    }
   }
-  const observer = new ResizeObserver(resize);
+  const observer = new ResizeObserver(() => {
+    resize();
+    onResize();
+  });
   observer.observe(canvas);
   resize();
   return {
     ctx,
+    setOnResize(callback) {
+      onResize = callback;
+    },
     prepare() {
       const { width, height } = canvas.getBoundingClientRect();
       const dpr = window.devicePixelRatio || 1;

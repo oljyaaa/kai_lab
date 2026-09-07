@@ -1,10 +1,13 @@
-export function createInput(target) {
+export function createInput(target, initialScheme = "wasd") {
+  let scheme = initialScheme;
   const down = new Set();
   const pressed = new Set();
   const allowed = new Set([
     "KeyW",
     "KeyA",
     "KeyD",
+    "KeyS",
+    "ArrowDown",
     "ArrowUp",
     "ArrowLeft",
     "ArrowRight",
@@ -12,8 +15,15 @@ export function createInput(target) {
     "Space",
   ]);
   function keydown(event) {
+    const movement =
+      scheme === "wasd"
+        ? ["KeyW", "KeyA", "KeyS", "KeyD"]
+        : scheme === "arrows"
+          ? ["ArrowUp", "ArrowLeft", "ArrowDown", "ArrowRight"]
+          : [];
     if (
       !allowed.has(event.code) ||
+      (!movement.includes(event.code) && event.code !== "KeyR") ||
       ["INPUT", "SELECT", "BUTTON", "TEXTAREA"].includes(event.target?.tagName)
     )
       return;
@@ -36,11 +46,25 @@ export function createInput(target) {
     justPressed: (code) => pressed.has(code),
     endStep: () => pressed.clear(),
     clear,
+    setScheme(next) {
+      scheme = next;
+      clear();
+    },
     snapshot: () => ({
-      thrust: down.has("KeyW") || down.has("ArrowUp"),
+      thrust:
+        scheme === "wasd"
+          ? down.has("KeyW")
+          : scheme === "arrows" && down.has("ArrowUp"),
+      brake:
+        scheme === "wasd"
+          ? down.has("KeyS")
+          : scheme === "arrows" && down.has("ArrowDown"),
       turn:
-        Number(down.has("KeyD") || down.has("ArrowRight")) -
-        Number(down.has("KeyA") || down.has("ArrowLeft")),
+        scheme === "wasd"
+          ? Number(down.has("KeyD")) - Number(down.has("KeyA"))
+          : scheme === "arrows"
+            ? Number(down.has("ArrowRight")) - Number(down.has("ArrowLeft"))
+            : 0,
     }),
     destroy() {
       target.removeEventListener("keydown", keydown);
