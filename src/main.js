@@ -5,6 +5,7 @@ import { createCanvas } from "./render/canvas.js";
 import { draw } from "./render/draw.js";
 import { interpolate, wrapShip } from "./sim/arena.js";
 import { createShip, integrate } from "./sim/ship.js";
+import { appendTrail } from "./sim/trail.js";
 
 document.querySelector("#app").innerHTML =
   `<header><div><h1>✿ Glitter FPV</h1><small>КЛУБ РОЖЕВИХ ПОЛЬОТІВ</small></div><span class="pill">♡ Лабораторна 01 · вільний політ</span></header><main><div class="intro"><div><h2>Маленький дрон. Велика пригода ✧</h2><p>Лови блискітки поглядом і малюй у небі свій маршрут.</p></div><span class="pill">✦ Пастельна арена</span></div><div class="layout"><section class="stage"><div class="stage-top"><span>● GLITTER GARDEN</span><span id="flight">ПОЛІТ АКТИВНИЙ</span></div><canvas aria-label="Арена польоту FPV-дрона. W — тяга, A та D — поворот."></canvas><div class="stage-bottom"><span>✧ Краї арени з’єднані — лети без меж</span><span>FPV / 01</span></div><div class="touch"><button data-control="left" aria-label="Повернути ліворуч">↶</button><button data-control="thrust" aria-label="Тяга">↑ Тяга</button><button data-control="right" aria-label="Повернути праворуч">↷</button></div></section><aside><section class="card"><h3>♡ Твій дрон</h3><span class="badge">BOW-01 · рожевий квадрокоптер</span><div class="metrics"><div><b id="speed">0</b><span>швидкість, од/с</span></div><div><b id="steps">0</b><span>steps/s</span></div><div><b id="fps">0</b><span>frames/s</span></div><div><b id="ms">0</b><span>час кадру, ms</span></div></div></section><section class="card controls"><h3>Готова до зльоту?</h3><p><span>Тяга вперед</span><kbd>W / ↑</kbd></p><p><span>Повернути</span><span><kbd>A</kbd> <kbd>D</kbd></span></p><p><span>Почати спочатку</span><kbd>R</kbd></p><div class="actions"><button id="pause">Пауза</button><button id="reset" class="secondary">На старт</button></div><p class="hint">Відпусти тягу — дрон плавно сповільниться.</p></section></aside></div><section class="card lab"><label for="mode">✦ Лабораторія польоту</label><select id="mode"><option value="fixed">Норма · fixed 60 Hz + rAF</option><option value="block">Експеримент 1 · блок 100 ms</option><option value="interval">Експеримент 2 · setInterval 16 ms</option><option value="variable">Експеримент 3 · змінний крок</option></select><button id="measure">Виміряти 10 секунд</button><button class="secondary" id="download" disabled>Завантажити JSON</button><p id="status" role="status">Обери режим, щоб порівняти плавність польоту.</p></section><footer>Зроблено з ♡ · Vanilla JavaScript + Canvas · навчальний прототип, вигляд згори</footer></main>`;
@@ -20,6 +21,8 @@ let current = createShip(),
   result = null,
   started = 0,
   frameCount = 0;
+let simulationTime = 0;
+let trail = [];
 const touch = new Set();
 const $ = (id) => document.getElementById(id);
 const preferences = {
@@ -41,6 +44,9 @@ const preferences = {
 let theme =
   preferences.read("glitter-theme", "light") === "dark" ? "dark" : "light";
 let scheme = preferences.read("glitter-controls", "wasd");
+let showTrail = preferences.read("glitter-show-trail", "true") === "true";
+let showInterpolation =
+  preferences.read("glitter-show-interpolation", "false") === "true";
 if (!["wasd", "arrows", "touch"].includes(scheme)) scheme = "wasd";
 document
   .querySelector("header")
@@ -49,7 +55,13 @@ document
     '<button id="theme" class="secondary" aria-pressed="false">☾ Нічна тема</button>',
   );
 document.querySelector(".controls").innerHTML =
-  `<h3>Пульт керування</h3><label for="controls">Спосіб керування</label><select id="controls"><option value="wasd">Клавіатура · WASD</option><option value="arrows">Клавіатура · стрілки</option><option value="touch">Екранні кнопки</option></select><div id="key-guide"></div><div class="actions"><button id="pause">Пауза</button><button id="reset" class="secondary">На старт</button></div><p class="hint">Клікни арену для польоту. Tab переміщує фокус між налаштуваннями.</p>`;
+  `<h3>Пульт керування</h3><label for="controls">Спосіб керування</label><select id="controls"><option value="wasd">Клавіатура · WASD</option><option value="arrows">Клавіатура · стрілки</option><option value="touch">Екранні кнопки</option></select><div id="key-guide"></div><div class="actions"><button id="pause">Пауза</button><button id="reset" class="secondary">На старт</button></div><p class="hint">Обери схему та керуй дроном. Tab переміщує фокус між налаштуваннями.</p>`;
+document
+  .querySelector("aside")
+  .insertAdjacentHTML(
+    "beforeend",
+    `<section class="card overlays"><h3>Візуальна лабораторія</h3><label><input id="trail-toggle" type="checkbox"> Привид маршруту <span>останні 10 с</span></label><label><input id="interpolation-toggle" type="checkbox"> Показати інтерполяцію</label><p class="hint">Точки показують попередній, поточний та проміжний стан.</p></section>`,
+  );
 document
   .querySelector(".touch")
   .insertAdjacentHTML(
@@ -58,6 +70,15 @@ document
   );
 const canvas = document.querySelector("canvas");
 canvas.tabIndex = 0;
+function overlay() {
+  return {
+    showTrail,
+    showInterpolation,
+    trail,
+    previous,
+    current,
+  };
+}
 function paint() {
   surface.prepare();
   draw(
@@ -66,8 +87,14 @@ function paint() {
     loop?.stats || { stepsPerSecond: 0, framesPerSecond: 0, frameMs: 0 },
     performance.now() / 1000,
     theme,
+    overlay(),
   );
   $("speed").textContent = Math.hypot(current.vx, current.vy).toFixed(0);
+}
+function applyOverlays() {
+  $("trail-toggle").checked = showTrail;
+  $("interpolation-toggle").checked = showInterpolation;
+  paint();
 }
 function applyTheme() {
   document.documentElement.dataset.theme = theme;
@@ -101,14 +128,27 @@ $("controls").onchange = (event) => {
   applyScheme();
   canvas.focus({ preventScroll: true });
 };
+$("trail-toggle").onchange = (event) => {
+  showTrail = event.target.checked;
+  preferences.write("glitter-show-trail", String(showTrail));
+  paint();
+};
+$("interpolation-toggle").onchange = (event) => {
+  showInterpolation = event.target.checked;
+  preferences.write("glitter-show-interpolation", String(showInterpolation));
+  paint();
+};
 applyScheme();
 applyTheme();
+applyOverlays();
 surface.setOnResize(() => {
   if (paused) paint();
 });
 function reset() {
   current = createShip();
   previous = current;
+  simulationTime = 0;
+  trail = [];
   input.clear();
   touch.clear();
   paint();
@@ -132,6 +172,8 @@ function startLoop() {
       keys.brake ||= touch.has("brake");
       keys.turn += Number(touch.has("right")) - Number(touch.has("left"));
       current = wrapShip(integrate(current, keys, dt));
+      simulationTime += dt;
+      trail = appendTrail(trail, current, simulationTime);
       input.endStep();
     },
     render(alpha, stats) {
@@ -149,6 +191,7 @@ function startLoop() {
         stats,
         performance.now() / 1000,
         theme,
+        overlay(),
       );
       $("speed").textContent = Math.hypot(current.vx, current.vy).toFixed(0);
       $("steps").textContent = stats.stepsPerSecond.toFixed(0);
@@ -197,7 +240,14 @@ $("reset").onclick = () => {
   reset();
   if (paused) {
     surface.prepare();
-    draw(surface.ctx, current, loop.stats, performance.now() / 1000, theme);
+    draw(
+      surface.ctx,
+      current,
+      loop.stats,
+      performance.now() / 1000,
+      theme,
+      overlay(),
+    );
   }
 };
 $("mode").onchange = (event) => {

@@ -355,6 +355,25 @@ kbd,
 .controls select {
   width: 100%;
 }
+.overlays label {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: 12px 0;
+  font-size: 14px;
+  font-weight: 700;
+}
+.overlays input {
+  width: 18px;
+  height: 18px;
+  accent-color: #ed5196;
+}
+.overlays span {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+}
 .touch {
   flex-wrap: wrap;
 }

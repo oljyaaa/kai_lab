@@ -82,7 +82,79 @@ export function drawShip(ctx, ship, time) {
   }
   ctx.restore();
 }
-export function draw(ctx, ship, stats, time, theme = "light") {
+function drawTrail(ctx, trail, dark) {
+  if (trail.length < 2) return;
+  ctx.save();
+  ctx.strokeStyle = dark ? "#ff9dcd" : "#d94b91";
+  ctx.globalAlpha = 0.65;
+  ctx.lineWidth = 3;
+  ctx.setLineDash([7, 8]);
+  ctx.beginPath();
+  let previous = trail[0];
+  ctx.moveTo(previous.x, previous.y);
+  for (const point of trail.slice(1)) {
+    const wrapped =
+      Math.abs(point.x - previous.x) > ARENA.width / 2 ||
+      Math.abs(point.y - previous.y) > ARENA.height / 2;
+    if (wrapped) ctx.moveTo(point.x, point.y);
+    else ctx.lineTo(point.x, point.y);
+    previous = point;
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+function marker(ctx, point, color, label) {
+  ctx.save();
+  ctx.fillStyle = color;
+  ctx.strokeStyle = "#fff";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(point.x, point.y, 7, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = color;
+  ctx.font = "bold 13px sans-serif";
+  ctx.textAlign = "left";
+  ctx.fillText(label, point.x + 10, point.y - 9);
+  ctx.restore();
+}
+function drawInterpolation(ctx, previous, current, display) {
+  ctx.save();
+  ctx.strokeStyle = "#8bd7ff";
+  ctx.globalAlpha = 0.75;
+  ctx.lineWidth = 2;
+  ctx.setLineDash([4, 5]);
+  ctx.beginPath();
+  ctx.moveTo(previous.x, previous.y);
+  ctx.lineTo(current.x, current.y);
+  ctx.stroke();
+  ctx.restore();
+  marker(ctx, previous, "#54b9ec", "previous");
+  marker(ctx, current, "#ee4b9b", "current");
+  marker(ctx, display, "#f5b900", "render (α)");
+}
+function drawLegend(ctx, dark) {
+  const labels = [
+    ["#54b9ec", "previous"],
+    ["#ee4b9b", "current"],
+    ["#f5b900", "render (α)"],
+  ];
+  ctx.save();
+  ctx.font = "12px monospace";
+  ctx.textAlign = "right";
+  ctx.fillStyle = dark ? "#f9d7ec" : "#69415f";
+  labels.forEach(([color, label], index) => {
+    const y = 30 + index * 18;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(850, y - 4, 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = dark ? "#f9d7ec" : "#69415f";
+    ctx.fillText(label, 976, y);
+  });
+  ctx.restore();
+}
+export function draw(ctx, ship, stats, time, theme = "light", overlay = {}) {
   const dark = theme === "dark";
   ctx.fillStyle = dark ? "#291c32" : "#fff3f9";
   ctx.fillRect(0, 0, ARENA.width, ARENA.height);
@@ -119,9 +191,14 @@ export function draw(ctx, ship, stats, time, theme = "light") {
   ctx.font = "bold 24px sans-serif";
   ctx.textAlign = "center";
   ctx.fillText("H", 500, 380);
+  if (overlay.showTrail) drawTrail(ctx, overlay.trail || [], dark);
   for (const dx of [-1000, 0, 1000])
     for (const dy of [-660, 0, 660])
       drawShip(ctx, { ...ship, x: ship.x + dx, y: ship.y + dy }, time);
+  if (overlay.showInterpolation) {
+    drawInterpolation(ctx, overlay.previous, overlay.current, ship);
+    drawLegend(ctx, dark);
+  }
   ctx.textAlign = "left";
   ctx.fillStyle = dark ? "#f9d7ec" : "#69415f";
   ctx.font = "15px monospace";
