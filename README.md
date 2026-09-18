@@ -1,5 +1,7 @@
 # ✿ Glitter FPV — клуб рожевих польотів
 
+> Ця гілка містить **самостійну Lab 02**: прямий запуск dogfight без лобі та асинхронного pipeline, які належать наступній Lab 03.
+
 ## Опубліковані версії
 
 1. [Lab 01 — game loop](https://oljyaaa.github.io/kai_lab/lab-01/)
@@ -347,74 +349,16 @@ console.log(a.hello(), b.hello());
 
 ---
 
-# Lab 03 — асинхронний JavaScript: assets, звук і лобі
-
-## Асинхронний pipeline
-
-`public/assets/manifest.json` описує спрайтшит, арену й три WAV-звуки. `src/assets/loader.js` має `fetchJson()` з перевіркою `response.ok`, `loadImage`, `loadAudio`, `loadJson`; кожна функція приймає `AbortSignal`.
-
-```js
-const assets = await loadAll(manifest, {
-  context: audioContext,
-  onProgress: ({ completed, total, id }) => drawLoading(ctx, completed / total, id),
-});
-```
-
-`loadAll` запускає елементи конкурентно в `Promise.all`; кожен completion збільшує canvas progress-bar. Гра не створюється до `await loadAll`. `withRetry` має exponential backoff + jitter для transient/network/5xx помилок, але одразу кидає `HttpError` для 4xx.
-
-Локальний вимір у фінальному browser-тесті (теплий cache, 3 маленькі ресурси): sequential `await` — **2.4 ms**, `Promise.all` — **0.7 ms**. Це не вимір інтернету, але показує, що послідовний код штучно додає затримки; на повільній мережі різниця була б більшою.
-
-## Спрайти, звук і шина подій
-
-FPV-спрайтшит лежить у `public/assets/sprites/glitter-fpv-sheet.png`; рендер бере джерельний прямокутник і малює його `drawImage`. `AudioContext` створюється лише після кліку **Join**, три буфери декодуються на loading screen, а потім `Soundboard` програє fire/hit/explosion.
-
-Симуляція не імпортує ні `audio.js`, ні HUD. Вона передає факти через browser-native `EventTarget`:
-
-```js
-emit("fired", { ship, bullet });
-gameEvents.addEventListener("fired", () => soundboard.play("fire"));
-```
-
-## Лобі та скасування
-
-`class Lobby extends EventTarget` запитує `api/rooms.json`, відправляє `roomsChanged`, оновлює список кожні 5 секунд лише доки видиме. Кожний запит має `AbortSignal.timeout(2800)`; `hide()` очищує interval та викликає `abort()`. DOM-відображення винесене у `src/lobby-view.js`.
-
-## П’ять головоломок task/microtask
-
-1. `Promise.resolve().then(() => log("micro")); log("sync")` → `sync, micro`: реакція promise — microtask після поточного стеку.
-2. `async function f(){log(1); await 0; log(2)}; f(); log(3)` → `1, 3, 2`: навіть `await 0` продовжується microtask.
-3. `Promise.resolve().then(() => { log("then"); setTimeout(() => log("timer"), 0) }); log("sync")` → `sync, then, timer`: timer усередині microtask потрапляє в наступний task.
-4. `setTimeout(() => log("task"), 0); Promise.resolve().then(() => log("micro")); log("sync")` → `sync, micro, task`: перед task браузер спустошує microtask-чергу.
-5. `requestAnimationFrame(() => log("raf")); Promise.resolve().then(() => log("micro")); log("sync")` → `sync, micro, raf`: rAF прив’язаний до repaint, але microtask відпрацьовує раніше.
-
-## Галерея збоїв
-
-| Сценарій | Результат |
-|---|---|
-| 404 спрайт | Відсутній статичний файл відповідає `404`; `fetchJson` кидає `HttpError`, а гра продовжується. |
-| Timeout | `AbortSignal.timeout(80)` перериває контрольовано уповільнений pipeline; UI показує назву помилки. |
-| Abort | `AbortController.abort()` скасовує fetch посеред завантаження. |
-| Битий JSON | server повертає невалідний JSON; `response.json()` кидає `SyntaxError`. |
-
-Якщо критичний asset не завантажився при старті, замість падіння показується **«Повторити»**.
-
-## Перевірка Lab 02–03
-
-Виконано 18 вересня 2026:
+## Перевірка Lab 02
 
 ```text
-npm run check          ✓ Biome без попереджень
-npm test               ✓ 13 unit-тестів
-npm run build          ✓ production build
-node tests/lab03-browser.mjs
-                        ✓ lobby → loading → game
-                        ✓ Space/fire, 404, bad JSON, адаптивність 390 px
-                        ✓ runtime errors: 0
+npm run check            ✓ Biome без попереджень
+npm test                 ✓ 13 unit-тестів
+npm run build            ✓ production build
+node tests/lab2-browser.mjs
+                          ✓ прямий старт dogfight
+                          ✓ постріл Space, стрілки, адаптивність 390 px
+                          ✓ runtime errors: 0
 ```
 
-Браузерний скріншот та дані тесту: `docs/lab-03-preview.png`, `docs/lab-03-browser-results.json`.
-
-## Посилання на специфікації
-
-- [Lab 02: Objects, Prototypes, and this](https://github.com/rmalkevy/Programming-Practice-Projects/blob/main/courses/javascript/lab-02-objects-prototypes-classes.md)
-- [Lab 03: Asynchronous JavaScript](https://github.com/rmalkevy/Programming-Practice-Projects/blob/main/courses/javascript/lab-03-async-javascript.md)
+Специфікація: [Lab 02: Objects, Prototypes, and this](https://github.com/rmalkevy/Programming-Practice-Projects/blob/main/courses/javascript/lab-02-objects-prototypes-classes.md).
