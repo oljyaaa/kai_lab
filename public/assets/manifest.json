@@ -1,9 +1,0 @@
-{
-  "assets": [
-    { "id": "sprites", "type": "image", "url": "assets/sprites/glitter-fpv-sheet.png" },
-    { "id": "arena", "type": "json", "url": "assets/arena.json" },
-    { "id": "fire", "type": "audio", "url": "assets/sounds/fire.wav" },
-    { "id": "hit", "type": "audio", "url": "assets/sounds/hit.wav" },
-    { "id": "explosion", "type": "audio", "url": "assets/sounds/explosion.wav" }
-  ]
-}
