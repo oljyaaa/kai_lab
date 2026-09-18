@@ -26,7 +26,7 @@ npm run build    # production у dist/
 npm run preview  # перегляд production-збірки
 ```
 
-Шрифт Manrope завантажується з Google Fonts і підтримує українську. Без інтернету гра використовує системний sans-serif. Всі ігрові фігури малюються Canvas без зовнішніх спрайтів.
+Шрифт Manrope завантажується з Google Fonts і підтримує українську. Без інтернету гра використовує системний sans-serif. Починаючи з Lab 03 дрон, куля, астероїд і pickup малюються зі спрайтшита, що завантажується асинхронно.
 
 ## Що реалізовано покроково
 
@@ -212,7 +212,7 @@ node tests/overlays.mjs  # перевіряє маршрут, інтерполя
 4. Відкрити `input.js` та пояснити замикання; показати незалежну від DOM фізику.
 5. Увімкнути блокування, показати стрибки frame time і таблицю вимірювань.
 
-До фінальної здачі: ручний тест фонової вкладки 5 с; бажано перевірка фізичного 120/144 Hz екрана; повторити CPU-експеримент і доповнити власними спостереженнями; підготувати відповіді Reflection. Тег `lab-01` поки не поставлено, щоб не позначати проміжний прототип як фінальну здачу. Мультиплеєр, колізії, перешкоди та сервер — наступні лабораторні.
+Для захисту Lab 01 лишається корисно власноруч повторити 5-секундний тест фонової вкладки та подивитися на гру на фізичному 120/144 Hz екрані. Версія Lab 01 буде збережена окремим тегом; колізії та перешкоди реалізовані в наступній версії, сервер — тема наступних лабораторних.
 
 ## Оновлення: теми, пульт і повторна перевірка вимог
 
@@ -241,8 +241,8 @@ S / ↓ додає гальмування (5 с⁻¹ до drag), яке має �
 | Чиста integrate без DOM | Реалізовано; додане гальмування лишається чистим |
 | Інтерполяція, angle wrap, arena wrap, DPR/resize | Реалізовано; інтерполяція країв покрита тестом |
 | Три експерименти з числами | Дані збережені; обмеження CPU-тесту описані вище |
-| 5 с фонової вкладки | Ще потрібен ручний дослід у видимому браузері |
-| Тег lab-01 | Ще не створено: версія проміжна, потрібні фінальні досліди |
+| 5 с фонової вкладки | Варто повторити вручну на своєму браузері перед захистом |
+| Тег lab-01 | Зберігається як окрема версія Lab 01 |
 
 Отже, основа відповідає завданню, але повну готовність до фінальної здачі не заявляємо. Початкову ідею космічного корабля замінено на обрану тему FPV. Сервер не потрібен для першої лабораторної.
 
@@ -263,3 +263,152 @@ S / ↓ додає гальмування (5 с⁻¹ до drag), яке має �
 - [Fix Your Timestep!](https://gafferongames.com/post/fix_your_timestep/)
 - [MDN: requestAnimationFrame](https://developer.mozilla.org/en-US/docs/Web/API/Window/requestAnimationFrame)
 - [MDN: devicePixelRatio](https://developer.mozilla.org/en-US/docs/Web/API/Window/devicePixelRatio)
+
+---
+
+# Lab 02 — об’єкти, прототипи та `this`: модель сутностей
+
+Lab 02 перетворює вільний політ на FPV-dogfight. У коді немає глибокої ієрархії: є тільки `Ship extends Entity`; інші відмінності описані даними й компонентами. Відкрий лобі, натисни **Join**, лети `W A S D` або стрілками та стріляй `Space`.
+
+| Вимога | Реалізація |
+|---|---|
+| `Vector2` | `src/sim/vector.js`: чисті `add`, `sub`, `scale`, `normalize`, `rotate`, `dot`; вони повертають новий вектор і не змінюють аргументи. |
+| Сутності | `Entity` має приватний статичний лічильник `#nextId`, приватний `#id`, `pos`, `previousPos`, `vel`, `angle`, `radius`, `kind`, `alive`, `update`. `Ship extends Entity`, HP — приватне поле `#hp` з `get hp()`. |
+| Світ | `World` тримає `Map<id, Entity>`, реалізує `[Symbol.iterator]`, генератор `ofKind`, deferred `despawn` і `sweep()` наприкінці `step`. |
+| Бій | Кулі мають TTL 1.35 c; `Ship.fire(world)` створює кулю з носа й додає швидкість корабля. Астероїди отримують damage, корабель — HP; за знищення астероїда дається 100 score. |
+| Колізії | `src/sim/collision.js` — незалежна наївна circle–circle система O(n²), яку можна замінити просторовим хешем у Lab 7. |
+| Вибух / респаун | `Explosion` має багато короткоживучих частинок; корабель стає неконтактним і відроджується через 2 c в центрі арени. |
+| Композиція | `components.homing` змушує один астероїд шукати корабель; `components.pickup` описує нерухомі щити і бонус score. |
+
+Приклад чистої операції:
+
+```js
+const nextPosition = ship.pos.add(ship.vel.scale(dt));
+// ship.pos і ship.vel не змінені
+```
+
+Життєвий цикл сутностей без видалення всередині ітерації:
+
+```js
+despawn(id) { entity.alive = false; this.#pendingRemoval.add(id); }
+step(dt, input) {
+  for (const entity of this) entity.update(dt, input);
+  resolveCollisions(this);
+  this.sweep();
+}
+```
+
+## `this`: навмисний баг і фікс
+
+Помилковий код `fireButton.addEventListener("click", ship.fire)` передає функцію, а не виклик. DOM викличе її з іншим `this` (кнопкою), тому всередині методу немає `ship.cooldown` чи `ship.pos`. У грі постріл викликається через замикання над конкретним кораблем:
+
+```js
+button.onpointerdown = () => ship.fire(world);
+```
+
+Альтернативи: `ship.fire.bind(ship)` (створює назавжди прив’язану функцію) або поле класу `fire = () => …` (стрілка захоплює лексичний `this`, але створює функцію для кожного екземпляра). Правила `this` за пріоритетом: `new`, explicit (`call/apply/bind`), implicit (`obj.method()`), default (`method()`). Стрілка власного `this` не має, отже `.bind()` його не змінить.
+
+## Чому композиція, а не дерево класів
+
+Невдале дерево швидко стало б таким:
+
+```text
+Entity → MovingEntity → HomingEntity → HomingAsteroid
+                              └────→ HomingBullet
+Entity → CollidableEntity → PickupEntity → ShieldPickup
+```
+
+Натомість кожна сутність має звичайне поле `components`:
+
+```js
+attachHoming(asteroid, { targetId: ship.id, turnRate: 0.42 });
+pickup.components.pickup = { type: "shield", value: 30 };
+```
+
+`updateHoming` працює з будь-яким `Entity`, який має компонент, а `applyPickup` — з будь-яким об’єктом із даними pickup. Це легко серіалізувати для майбутньої мережевої синхронізації, а нова поведінка не вимагає нового `extends`.
+
+### Консольний експеримент прототипів
+
+```js
+const prototype = { hello() { return "delegation, not copy"; } };
+const a = Object.create(prototype);
+const b = Object.create(prototype);
+prototype.hello = () => "спільний метод змінився";
+console.log(a.hello(), b.hello());
+```
+
+Обидва об’єкти бачать новий метод через prototype chain: функція не копіюється в кожен екземпляр.
+
+---
+
+# Lab 03 — асинхронний JavaScript: assets, звук і лобі
+
+## Асинхронний pipeline
+
+`public/assets/manifest.json` описує спрайтшит, арену й три WAV-звуки. `src/assets/loader.js` має `fetchJson()` з перевіркою `response.ok`, `loadImage`, `loadAudio`, `loadJson`; кожна функція приймає `AbortSignal`.
+
+```js
+const assets = await loadAll(manifest, {
+  context: audioContext,
+  onProgress: ({ completed, total, id }) => drawLoading(ctx, completed / total, id),
+});
+```
+
+`loadAll` запускає елементи конкурентно в `Promise.all`; кожен completion збільшує canvas progress-bar. Гра не створюється до `await loadAll`. `withRetry` має exponential backoff + jitter для transient/network/5xx помилок, але одразу кидає `HttpError` для 4xx.
+
+Локальний вимір у фінальному browser-тесті (теплий cache, 3 маленькі ресурси): sequential `await` — **2.4 ms**, `Promise.all` — **0.7 ms**. Це не вимір інтернету, але показує, що послідовний код штучно додає затримки; на повільній мережі різниця була б більшою.
+
+## Спрайти, звук і шина подій
+
+FPV-спрайтшит лежить у `public/assets/sprites/glitter-fpv-sheet.png`; рендер бере джерельний прямокутник і малює його `drawImage`. `AudioContext` створюється лише після кліку **Join**, три буфери декодуються на loading screen, а потім `Soundboard` програє fire/hit/explosion.
+
+Симуляція не імпортує ні `audio.js`, ні HUD. Вона передає факти через browser-native `EventTarget`:
+
+```js
+emit("fired", { ship, bullet });
+gameEvents.addEventListener("fired", () => soundboard.play("fire"));
+```
+
+## Лобі та скасування
+
+`class Lobby extends EventTarget` запитує `api/rooms.json`, відправляє `roomsChanged`, оновлює список кожні 5 секунд лише доки видиме. Кожний запит має `AbortSignal.timeout(2800)`; `hide()` очищує interval та викликає `abort()`. DOM-відображення винесене у `src/lobby-view.js`.
+
+## П’ять головоломок task/microtask
+
+1. `Promise.resolve().then(() => log("micro")); log("sync")` → `sync, micro`: реакція promise — microtask після поточного стеку.
+2. `async function f(){log(1); await 0; log(2)}; f(); log(3)` → `1, 3, 2`: навіть `await 0` продовжується microtask.
+3. `Promise.resolve().then(() => { log("then"); setTimeout(() => log("timer"), 0) }); log("sync")` → `sync, then, timer`: timer усередині microtask потрапляє в наступний task.
+4. `setTimeout(() => log("task"), 0); Promise.resolve().then(() => log("micro")); log("sync")` → `sync, micro, task`: перед task браузер спустошує microtask-чергу.
+5. `requestAnimationFrame(() => log("raf")); Promise.resolve().then(() => log("micro")); log("sync")` → `sync, micro, raf`: rAF прив’язаний до repaint, але microtask відпрацьовує раніше.
+
+## Галерея збоїв
+
+| Сценарій | Результат |
+|---|---|
+| 404 спрайт | Dev middleware відповідає `404`; `fetchJson` кидає `HttpError`, а гра продовжується. |
+| Timeout | `AbortSignal.timeout(0)` скасовує запит; UI показує назву помилки. |
+| Abort | `AbortController.abort()` скасовує fetch посеред завантаження. |
+| Битий JSON | server повертає невалідний JSON; `response.json()` кидає `SyntaxError`. |
+
+Якщо критичний asset не завантажився при старті, замість падіння показується **«Повторити»**.
+
+## Перевірка Lab 02–03
+
+Виконано 18 вересня 2026:
+
+```text
+npm run check          ✓ Biome без попереджень
+npm test               ✓ 13 unit-тестів
+npm run build          ✓ production build
+node tests/lab03-browser.mjs
+                        ✓ lobby → loading → game
+                        ✓ Space/fire, 404, bad JSON, адаптивність 390 px
+                        ✓ runtime errors: 0
+```
+
+Браузерний скріншот та дані тесту: `docs/lab-03-preview.png`, `docs/lab-03-browser-results.json`.
+
+## Посилання на специфікації
+
+- [Lab 02: Objects, Prototypes, and this](https://github.com/rmalkevy/Programming-Practice-Projects/blob/main/courses/javascript/lab-02-objects-prototypes-classes.md)
+- [Lab 03: Asynchronous JavaScript](https://github.com/rmalkevy/Programming-Practice-Projects/blob/main/courses/javascript/lab-03-async-javascript.md)

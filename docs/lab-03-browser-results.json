@@ -1,0 +1,15 @@
+{
+  "errors": [],
+  "timing": {
+    "sequentialMs": 2.399999998509884,
+    "concurrentMs": 0.7000000029802322
+  },
+  "checks": [
+    "lobby",
+    "loadAll",
+    "keyboard fire",
+    "404",
+    "bad json",
+    "mobile"
+  ]
+}

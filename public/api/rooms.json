@@ -1,0 +1,5 @@
+[
+  { "id": "sparkle", "title": "Sparkle Garden", "players": 1, "maxPlayers": 4, "arena": { "width": 1000, "height": 660 } },
+  { "id": "moonbow", "title": "Moonbow Circuit", "players": 2, "maxPlayers": 6, "arena": { "width": 860, "height": 560 } },
+  { "id": "kitty", "title": "Kitty Cloud Arena", "players": 1, "maxPlayers": 3, "arena": { "width": 720, "height": 500 } }
+]

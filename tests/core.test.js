@@ -160,3 +160,19 @@ test("input tracks edges, repeat, blur and listener cleanup", () => {
   key("keydown");
   assert.equal(input.isDown("KeyW"), false);
 });
+
+test("Space is an edge-triggered game action in both keyboard schemes", () => {
+  const target = new EventTarget();
+  const input = createInput(target);
+  const press = () => {
+    const event = new Event("keydown", { cancelable: true });
+    Object.defineProperty(event, "code", { value: "Space" });
+    target.dispatchEvent(event);
+    return event;
+  };
+  assert.equal(press().defaultPrevented, true);
+  assert.equal(input.justPressed("Space"), true);
+  input.endStep();
+  assert.equal(input.justPressed("Space"), false);
+  input.destroy();
+});

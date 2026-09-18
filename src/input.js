@@ -23,7 +23,8 @@ export function createInput(target, initialScheme = "wasd") {
           : [];
     if (
       !allowed.has(event.code) ||
-      (!movement.includes(event.code) && event.code !== "KeyR") ||
+      (!movement.includes(event.code) &&
+        !["KeyR", "Space"].includes(event.code)) ||
       ["INPUT", "SELECT", "TEXTAREA"].includes(event.target?.tagName) ||
       event.target?.isContentEditable ||
       event.ctrlKey ||
