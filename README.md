@@ -1,5 +1,11 @@
 # ✿ Glitter FPV — клуб рожевих польотів
 
+## Опубліковані версії
+
+1. [Lab 01 — game loop](https://oljyaaa.github.io/kai_lab/lab-01/)
+2. [Lab 02 — сутності та dogfight](https://oljyaaa.github.io/kai_lab/lab-02/)
+3. [Lab 03 — async assets, звук і лобі](https://oljyaaa.github.io/kai_lab/lab-03/)
+
 Навчальна браузерна гра про FPV-дрон BOW-01: вигляд згори, рожево-біла палітра, бантик, мультяшні пропелери та блискітки в естетиці Hello Kitty / kawaii. Це перший етап семестрового проєкту — локальний політ одного дрона; камера від першої особи й мережевий сервер поки не реалізовані.
 
 ![Гра на комп’ютері](docs/preview-desktop.png)
@@ -385,8 +391,8 @@ gameEvents.addEventListener("fired", () => soundboard.play("fire"));
 
 | Сценарій | Результат |
 |---|---|
-| 404 спрайт | Dev middleware відповідає `404`; `fetchJson` кидає `HttpError`, а гра продовжується. |
-| Timeout | `AbortSignal.timeout(0)` скасовує запит; UI показує назву помилки. |
+| 404 спрайт | Відсутній статичний файл відповідає `404`; `fetchJson` кидає `HttpError`, а гра продовжується. |
+| Timeout | `AbortSignal.timeout(80)` перериває контрольовано уповільнений pipeline; UI показує назву помилки. |
 | Abort | `AbortController.abort()` скасовує fetch посеред завантаження. |
 | Битий JSON | server повертає невалідний JSON; `response.json()` кидає `SyntaxError`. |
 

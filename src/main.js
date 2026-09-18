@@ -15,6 +15,22 @@ import { World } from "./sim/world.js";
 
 const app = document.querySelector("#app");
 let activeGame;
+const failureUrl = (productionPath, developmentPath) =>
+  import.meta.env.DEV ? developmentPath : productionPath;
+
+function cancellableDelay(ms, signal) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(resolve, ms);
+    signal.addEventListener(
+      "abort",
+      () => {
+        clearTimeout(timer);
+        reject(signal.reason);
+      },
+      { once: true },
+    );
+  });
+}
 function renderLobby() {
   activeGame?.stop();
   app.innerHTML = `<header><div><h1>✿ Glitter FPV</h1><small>ASYNC DOGFIGHT · LAB 03</small></div><span class="pill">♡ Спершу — лобі, потім — політ</span></header><main id="lobby-root"></main>`;
@@ -206,11 +222,22 @@ function startGame({ room, name, assets, audioContext }) {
     const controller = new AbortController();
     try {
       if (kind === "404")
-        await fetchJson("/__lab-failure/404.png", {
-          signal: controller.signal,
-        });
-      if (kind === "timeout")
-        await fetch("api/rooms.json", { signal: AbortSignal.timeout(0) });
+        await fetchJson(
+          failureUrl(
+            "failures/missing-sprite.png",
+            "/__lab-dev-failure/404.png",
+          ),
+          {
+            signal: controller.signal,
+          },
+        );
+      if (kind === "timeout") {
+        const signal = AbortSignal.timeout(80);
+        await Promise.all([
+          fetchJson("failures/slow.json", { signal }),
+          cancellableDelay(500, signal),
+        ]);
+      }
       if (kind === "abort") {
         const promise = fetch("assets/sprites/glitter-fpv-sheet.png", {
           signal: controller.signal,
@@ -219,7 +246,7 @@ function startGame({ room, name, assets, audioContext }) {
         await promise;
       }
       if (kind === "json")
-        await fetchJson("/__lab-failure/bad.json", {
+        await fetchJson("failures/bad.json", {
           signal: controller.signal,
         });
       status.textContent = "Неочікувано: сценарій не зламався.";
